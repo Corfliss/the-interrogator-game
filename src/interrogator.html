@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Interrogator — Murder Mystery</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --noir-black: #0d0d0f;
+    --noir-dark: #13131a;
+    --noir-panel: #1a1a26;
+    --amber: #d4a843;
+    --amber-dim: #8a6b22;
+    --amber-glow: #f0c96a;
+    --parchment: #e8d5a3;
+    --parchment-dim: #b89d6a;
+    --ink: #c8b89a;
+    --blood: #8b1a1a;
+    --blood-bright: #c0392b;
+    --mist: #6a7a8a;
+    --border-subtle: rgba(212,168,67,0.15);
+    --border-mid: rgba(212,168,67,0.3);
+  }
+
+  html, body { height: 100%; background: var(--noir-black); color: var(--ink); font-family: 'Special Elite', cursive; overflow: hidden; }
+
+  #app { display: grid; grid-template-columns: 340px 1fr; height: 100vh; overflow: hidden; }
+
+  /* LEFT PANEL */
+  #dossier { background: var(--noir-dark); border-right: 1px solid var(--border-mid); display: flex; flex-direction: column; overflow: hidden; }
+
+  .dossier-header { padding: 24px 24px 16px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+
+  .eyebrow { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 0.3em; color: var(--amber-dim); text-transform: uppercase; margin-bottom: 8px; }
+
+  .dossier-title { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900; color: var(--parchment); line-height: 1.1; margin-bottom: 4px; }
+
+  .dossier-subtitle { font-family: 'Courier Prime', monospace; font-size: 11px; color: var(--mist); letter-spacing: 0.1em; }
+
+  .dossier-body { flex: 1; overflow-y: auto; padding: 0 20px 20px; scrollbar-width: thin; scrollbar-color: var(--amber-dim) transparent; }
+
+  .folder-tab { display: inline-block; background: var(--amber); color: var(--noir-black); font-family: 'Courier Prime', monospace; font-size: 9px; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; padding: 4px 14px; margin: 20px 0 0 0; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 0 100%); }
+
+  .dossier-card { background: #16161f; border: 1px solid var(--border-subtle); border-top: 2px solid var(--amber); padding: 16px; font-size: 13px; line-height: 1.7; color: var(--ink); margin-bottom: 2px; }
+
+  .dossier-card .label { font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber-dim); margin-bottom: 4px; display: block; }
+
+  .dossier-card .value { color: var(--parchment-dim); font-size: 13px; }
+
+  .suspect-portrait { width: 72px; height: 72px; border: 2px solid var(--amber-dim); background: #0f0f18; display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 12px; position: relative; }
+
+  .suspect-portrait::after { content: 'SUSPECT'; position: absolute; bottom: -1px; left: 0; right: 0; background: var(--blood); color: #fff; font-family: 'Courier Prime', monospace; font-size: 7px; letter-spacing: 0.2em; text-align: center; padding: 1px 0; }
+
+  .stamp { display: inline-block; border: 3px solid var(--blood-bright); color: var(--blood-bright); font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 900; padding: 4px 12px; letter-spacing: 0.15em; transform: rotate(-8deg); opacity: 0.85; margin: 16px 0 8px; text-transform: uppercase; }
+
+  .clues-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+
+  .clue-chip { display: flex; align-items: center; gap: 8px; background: rgba(212,168,67,0.06); border: 1px solid var(--border-subtle); padding: 7px 10px; font-size: 12px; color: var(--ink); border-left: 3px solid var(--amber-dim); transition: border-color 0.3s, background 0.3s; }
+
+  .clue-chip.found { border-left-color: var(--amber); background: rgba(212,168,67,0.12); color: var(--parchment); }
+
+  .clue-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-dim); flex-shrink: 0; transition: background 0.3s; }
+
+  .clue-chip.found .dot { background: var(--amber); }
+
+  /* RIGHT PANEL */
+  #interrogation { display: flex; flex-direction: column; background: var(--noir-panel); overflow: hidden; }
+
+  .room-header { padding: 18px 28px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: var(--noir-dark); }
+
+  .room-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--parchment); }
+
+  .status-pill { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; padding: 4px 12px; background: rgba(139,26,26,0.2); border: 1px solid var(--blood); color: #e07070; }
+
+  .status-pill.active { background: rgba(212,168,67,0.12); border-color: var(--amber-dim); color: var(--amber); }
+
+  #chat-window { flex: 1; overflow-y: auto; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: thin; scrollbar-color: var(--amber-dim) transparent; }
+
+  .message { display: flex; flex-direction: column; max-width: 78%; gap: 4px; animation: fadeSlide 0.25s ease; }
+
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .message.detective { align-self: flex-end; align-items: flex-end; }
+  .message.suspect { align-self: flex-start; align-items: flex-start; }
+  .message.system { align-self: center; align-items: center; max-width: 90%; }
+
+  .msg-label { font-family: 'Courier Prime', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mist); }
+
+  .msg-bubble { padding: 13px 17px; font-size: 14px; line-height: 1.65; }
+
+  .detective .msg-bubble { background: #1c2640; border: 1px solid rgba(55,138,221,0.25); border-radius: 2px 2px 0 2px; color: #aac4e8; }
+
+  .suspect .msg-bubble { background: #1e1814; border: 1px solid var(--border-mid); border-radius: 2px 2px 2px 0; color: var(--parchment-dim); }
+
+  .system .msg-bubble { background: transparent; border: 1px dashed var(--border-mid); color: var(--mist); font-size: 12px; font-family: 'Courier Prime', monospace; letter-spacing: 0.05em; text-align: center; padding: 10px 20px; }
+
+  #typing-indicator { display: none; padding: 13px 20px; background: #1e1814; border: 1px solid var(--border-mid); border-radius: 2px 2px 2px 0; gap: 5px; align-items: center; align-self: flex-start; margin: 0 32px; }
+
+  #typing-indicator.visible { display: flex; }
+
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-dim); animation: blink 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+  #input-area { border-top: 1px solid var(--border-subtle); padding: 18px 28px; background: var(--noir-dark); flex-shrink: 0; }
+
+  .input-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+
+  #user-input { flex: 1; background: #0f0f18; border: 1px solid var(--border-mid); color: var(--parchment); font-family: 'Special Elite', cursive; font-size: 14px; padding: 12px 16px; resize: none; outline: none; line-height: 1.5; min-height: 48px; max-height: 120px; border-radius: 1px; transition: border-color 0.2s; }
+
+  #user-input:focus { border-color: var(--amber); }
+  #user-input::placeholder { color: var(--mist); opacity: 0.6; }
+
+  .btn { font-family: 'Courier Prime', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; padding: 12px 18px; border: none; cursor: pointer; border-radius: 1px; transition: background 0.15s, opacity 0.15s; white-space: nowrap; flex-shrink: 0; }
+
+  #send-btn { background: var(--amber); color: var(--noir-black); height: 48px; }
+  #send-btn:hover { background: var(--amber-glow); }
+  #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .action-row { display: flex; gap: 8px; align-items: center; }
+
+  #arrest-input { flex: 1; background: #0f0f18; border: 1px solid var(--blood); color: #e07070; font-family: 'Courier Prime', monospace; font-size: 12px; padding: 9px 14px; outline: none; border-radius: 1px; transition: border-color 0.2s; }
+
+  #arrest-input:focus { border-color: var(--blood-bright); }
+  #arrest-input::placeholder { color: var(--blood); opacity: 0.6; }
+
+  #arrest-btn { background: var(--blood); color: #fff; height: 38px; padding: 9px 16px; }
+  #arrest-btn:hover { background: var(--blood-bright); }
+  #arrest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  #reset-btn { background: transparent; color: var(--mist); border: 1px solid var(--border-mid); height: 38px; padding: 9px 14px; }
+  #reset-btn:hover { color: var(--parchment); }
+
+  /* Verdict overlay */
+  #verdict-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 100; align-items: center; justify-content: center; }
+  #verdict-overlay.show { display: flex; }
+
+  .verdict-box { background: var(--noir-dark); border: 2px solid var(--amber); padding: 48px 56px; text-align: center; max-width: 480px; animation: verdictIn 0.4s cubic-bezier(0.16,1,0.3,1); }
+
+  @keyframes verdictIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+  .verdict-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+  .verdict-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900; margin-bottom: 12px; }
+  .verdict-title.win { color: var(--amber); }
+  .verdict-title.loss { color: var(--blood-bright); }
+  .verdict-body { font-size: 14px; color: var(--ink); line-height: 1.7; margin-bottom: 28px; }
+
+  #new-case-btn { background: var(--amber); color: var(--noir-black); font-family: 'Courier Prime', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; padding: 13px 28px; border: none; cursor: pointer; border-radius: 1px; }
+  #new-case-btn:hover { background: var(--amber-glow); }
+
+  /* API modal */
+  #api-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .api-box { background: var(--noir-dark); border: 1px solid var(--border-mid); padding: 40px 48px; max-width: 440px; width: 90%; text-align: center; }
+  .api-box h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--parchment); margin-bottom: 10px; }
+  .api-box p { font-size: 13px; color: var(--mist); margin-bottom: 20px; line-height: 1.6; }
+  #api-key-input { width: 100%; background: #0f0f18; border: 1px solid var(--border-mid); color: var(--parchment); font-family: 'Courier Prime', monospace; font-size: 13px; padding: 12px 14px; outline: none; border-radius: 1px; margin-bottom: 14px; }
+  #api-key-input:focus { border-color: var(--amber); }
+  #api-submit { width: 100%; background: var(--amber); color: var(--noir-black); font-family: 'Courier Prime', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; padding: 13px; border: none; cursor: pointer; border-radius: 1px; }
+  #api-submit:hover { background: var(--amber-glow); }
+  .api-note { font-family: 'Courier Prime', monospace; font-size: 10px; color: var(--mist); margin-top: 12px; opacity: 0.7; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--amber-dim); border-radius: 2px; }
+
+  @media (max-width: 768px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; overflow: auto; }
+    #dossier { max-height: 280px; }
+    html, body { overflow: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="api-modal">
+  <div class="api-box">
+    <h2>Enter the Precinct</h2>
+    <p>Provide your Anthropic API key to begin the interrogation. Your key is held in memory only and used exclusively to call Anthropic's API.</p>
+    <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+    <button id="api-submit" onclick="submitApiKey()">Begin Investigation</button>
+    <p class="api-note">Key is session-only. Never stored or transmitted elsewhere.</p>
+  </div>
+</div>
+
+<div id="verdict-overlay">
+  <div class="verdict-box">
+    <span class="verdict-icon" id="verdict-icon">🎊</span>
+    <h2 class="verdict-title" id="verdict-title">Case Closed</h2>
+    <p class="verdict-body" id="verdict-body"></p>
+    <button id="new-case-btn" onclick="resetGame()">Open New Case</button>
+  </div>
+</div>
+
+<div id="app">
+  <aside id="dossier">
+    <div class="dossier-header">
+      <div class="eyebrow">Case File No. 1 — October 1948</div>
+      <div class="dossier-title">The Poisoned Duke</div>
+      <div class="dossier-subtitle">Interrogation Room B · Scotland Yard</div>
+    </div>
+    <div class="dossier-body">
+      <div class="folder-tab">Victim</div>
+      <div class="dossier-card">
+        <span class="label">Name</span>
+        <span class="value">His Grace, The Duke of Ashford</span>
+        <br><br>
+        <span class="label">Cause of Death</span>
+        <span class="value">Unknown. Suspected poisoning at the estate dinner, Oct 3rd.</span>
+      </div>
+
+      <div class="folder-tab">Suspect in Custody</div>
+      <div class="dossier-card">
+        <div class="suspect-portrait">🎩</div>
+        <span class="label">Name</span>
+        <span class="value">Arthur Pembrooke</span>
+        <br><br>
+        <span class="label">Role</span>
+        <span class="value">Head Butler — Ashford Estate. 22 years of service.</span>
+        <br><br>
+        <span class="label">Demeanor</span>
+        <span class="value">Defensive, evasive. Refuses to discuss the evening's events.</span>
+        <br><br>
+        <div class="stamp">Under Suspicion</div>
+      </div>
+
+      <div class="folder-tab">Clues to Uncover</div>
+      <div class="dossier-card">
+        <span class="label">Discover clues through questioning</span>
+        <div class="clues-list">
+          <div class="clue-chip" id="clue-tea">
+            <div class="dot"></div>
+            <span>What was in his evening drink?</span>
+          </div>
+          <div class="clue-chip" id="clue-arsenic">
+            <div class="dot"></div>
+            <span>A substance. Known to the old trade.</span>
+          </div>
+          <div class="clue-chip" id="clue-maid">
+            <div class="dot"></div>
+            <span>Who had access to the kitchen?</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="folder-tab">Your Mission</div>
+      <div class="dossier-card">
+        <p style="font-size:13px;line-height:1.7;color:var(--ink);">Interrogate Arthur Pembrooke. He is hiding something. Press him on the night's events, the household staff, and anything suspicious.</p>
+        <p style="font-size:12px;color:var(--mist);margin-top:8px;">When confident, name your suspect below and make your arrest.</p>
+      </div>
+    </div>
+  </aside>
+
+  <main id="interrogation">
+    <div class="room-header">
+      <div class="room-title">Interrogation — Arthur Pembrooke</div>
+      <div class="status-pill" id="status-pill">Awaiting Connection</div>
+    </div>
+
+    <div id="chat-window"></div>
+    <div id="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+
+    <div id="input-area">
+      <div class="input-row">
+        <textarea id="user-input" placeholder="Ask Arthur a question..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="btn" id="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+      <div class="action-row">
+        <input type="text" id="arrest-input" placeholder="Name your suspect and make the arrest..." />
+        <button class="btn" id="arrest-btn" onclick="makeArrest()">⚖ Arrest</button>
+        <button class="btn" id="reset-btn" onclick="resetGame()">New Case</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are Arthur Pembrooke, the head butler at Ashford Estate, being interrogated by a detective about the murder of the Duke of Ashford.
+
+THE TRUTH (known only to you): The Duke was poisoned by the Maid, Eleanor Voss, who laced his evening tea with arsenic. You witnessed Eleanor adding something to the tea tray but said nothing out of loyalty to the household.
+
+YOUR CHARACTER:
+- You are defensive, grumpy, and deeply resentful of being questioned
+- You have served this house for 22 years and consider it an insult to your dignity
+- You will NOT volunteer information — make the detective work for it
+- You use formal, slightly archaic speech patterns ("I dare say", "Most certainly not", "I beg your pardon")
+- You are hiding what you saw but are NOT the killer
+- Keep replies to 2-4 sentences maximum — terse and clipped
+
+CLUE BEHAVIOR:
+- If the detective mentions "tea" or "drink" or "beverage": hesitate and hint something happened to the drink without confessing. "The tea... I prepared the tray myself. Although — no, never mind."
+- If the detective mentions "arsenic" or "poison" or "substance": look visibly shaken. "Where did you hear that word?" Become more evasive. Don't confirm but show clear discomfort.
+- If the detective mentions "Eleanor" or "maid" or "kitchen staff": become very defensive. "Leave Eleanor out of this!" — making it obvious you are protecting someone.
+- Never directly confess who did it. Make the detective piece it together.
+
+ARREST EVALUATION:
+When asked to evaluate an arrest, you must respond ONLY with exactly "VERDICT: WIN" if the named suspect is Eleanor, Eleanor Voss, the maid, or maid. Otherwise respond with exactly "VERDICT: LOSS". No other text, no punctuation after.`;
+
+let apiKey = '';
+let chatHistory = [];
+let caseOpen = false;
+let cluesFound = { tea: false, arsenic: false, maid: false };
+
+function submitApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val.startsWith('sk-')) { alert('Please enter a valid Anthropic API key (starts with sk-)'); return; }
+  apiKey = val;
+  document.getElementById('api-modal').style.display = 'none';
+  initGame();
+}
+
+function initGame() {
+  chatHistory = [];
+  caseOpen = true;
+  cluesFound = { tea: false, arsenic: false, maid: false };
+  document.getElementById('chat-window').innerHTML = '';
+  document.querySelectorAll('.clue-chip').forEach(c => c.classList.remove('found'));
+  document.getElementById('arrest-input').value = '';
+  document.getElementById('user-input').value = '';
+  document.getElementById('verdict-overlay').classList.remove('show');
+  setStatus(true);
+  addMessage('system', '[ Interrogation in progress. Tape recording active. ]');
+  addMessage('suspect', "Right then. Sit down, if you must. I've already told the sergeant everything I know — which is nothing of consequence. Twenty-two years I've served this house. Twenty-two years. Ask your questions and be done with it.");
+}
+
+function setStatus(active) {
+  const pill = document.getElementById('status-pill');
+  pill.textContent = active ? 'Case Open — Live' : 'Case Closed';
+  pill.className = 'status-pill' + (active ? ' active' : '');
+}
+
+function addMessage(role, text) {
+  const win = document.getElementById('chat-window');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'message ' + role;
+  if (role !== 'system') {
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'detective' ? 'Detective' : 'Arthur Pembrooke';
+    wrapper.appendChild(label);
+  }
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+  wrapper.appendChild(bubble);
+  win.appendChild(wrapper);
+  win.scrollTop = win.scrollHeight;
+}
+
+function checkClues(text) {
+  const lower = text.toLowerCase();
+  if (!cluesFound.tea && (lower.includes('tea') || lower.includes('drink') || lower.includes('beverage'))) {
+    cluesFound.tea = true;
+    document.getElementById('clue-tea').classList.add('found');
+  }
+  if (!cluesFound.arsenic && (lower.includes('arsenic') || lower.includes('poison') || lower.includes('substance'))) {
+    cluesFound.arsenic = true;
+    document.getElementById('clue-arsenic').classList.add('found');
+  }
+  if (!cluesFound.maid && (lower.includes('eleanor') || lower.includes('maid') || lower.includes('kitchen'))) {
+    cluesFound.maid = true;
+    document.getElementById('clue-maid').classList.add('found');
+  }
+}
+
+function setLoading(loading) {
+  document.getElementById('send-btn').disabled = loading;
+  document.getElementById('arrest-btn').disabled = loading;
+  document.getElementById('typing-indicator').classList.toggle('visible', loading);
+  if (loading) document.getElementById('chat-window').scrollTop = 99999;
+}
+
+async function callClaude(messages, maxTokens) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens || 300, system: SYSTEM_PROMPT, messages })
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'API error'); }
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+async function sendMessage() {
+  if (!caseOpen) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  addMessage('detective', text);
+  chatHistory.push({ role: 'user', content: text });
+  checkClues(text);
+  setLoading(true);
+  try {
+    const reply = await callClaude(chatHistory, 300);
+    chatHistory.push({ role: 'assistant', content: reply });
+    if (chatHistory.length > 20) chatHistory.splice(0, 2);
+    addMessage('suspect', reply);
+    checkClues(reply);
+  } catch (e) {
+    addMessage('system', '[ Error: ' + e.message + ' ]');
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function makeArrest() {
+  if (!caseOpen) return;
+  const target = document.getElementById('arrest-input').value.trim();
+  if (!target) { document.getElementById('arrest-input').focus(); return; }
+  caseOpen = false;
+  setLoading(true);
+  addMessage('system', '[ Detective moves to make arrest: ' + target + ' ]');
+  const verdictMessages = [
+    ...chatHistory,
+    { role: 'user', content: 'The detective is making their arrest. The suspect named is: "' + target + '". Based on the truth you know, respond ONLY with "VERDICT: WIN" or "VERDICT: LOSS" — no other text.' }
+  ];
+  try {
+    const verdict = await callClaude(verdictMessages, 20);
+    setLoading(false);
+    setStatus(false);
+    showVerdict(verdict.includes('WIN'), target);
+  } catch (e) {
+    setLoading(false);
+    addMessage('system', '[ Error processing arrest: ' + e.message + ' ]');
+    caseOpen = true;
+    setStatus(true);
+  }
+}
+
+function showVerdict(win, target) {
+  document.getElementById('verdict-icon').textContent = win ? '🎊' : '🌑';
+  const title = document.getElementById('verdict-title');
+  title.className = 'verdict-title ' + (win ? 'win' : 'loss');
+  title.textContent = win ? 'Case Closed — Justice Served' : 'Wrong Arrest — Case Failed';
+  document.getElementById('verdict-body').textContent = win
+    ? 'Brilliant detective work. ' + target + ' was indeed the killer. Eleanor Voss, the household maid, laced the Duke\'s evening tea with arsenic. Arthur knew — you broke through his silence. Scotland Yard will have the full dossier by morning.'
+    : target + ' was not the killer. An innocent person faces the gallows while the true murderer walks free. The real culprit is still out there, watching. Perhaps you missed a clue Arthur was trying so hard to hide...';
+  document.getElementById('verdict-overlay').classList.add('show');
+}
+
+function resetGame() { initGame(); }
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+</script>
+</body>
+</html>
